@@ -32,6 +32,32 @@ pip install -r requirements.txt
 4. Follow the deployment steps mentioned in the previous sections of this document to sync the DAGs to a Google Cloud Storage bucket and configure the Airflow instance to use the GCS bucket as its DAG folder.
 5. Monitor the performance of your Airflow DAGs, Snowflake, BigQuery, and DBT tasks using Datadog and the data consistency job.
 
+## Setting up the EVM Models Submodule
+
+This repository includes the `coherentopensource/evm-models` repository as a submodule. To set up the submodule after cloning this repository, run the following commands:
+
+```bash
+git submodule init
+git submodule update
+```
+
+These commands will initialize and update the submodule, pulling the latest contents of the coherentopensource/evm-models repository into the evm-models directory.
+
+To update the submodule to the latest commit in the future, navigate to the submodule directory (evm-models) and run:
+
+```bash
+git checkout main
+git pull
+```
+
+Then, go back to the root directory of your main repository, commit, and push the submodule update:
+
+```bash
+git add evm-models
+git commit -m "Update evm-models submodule to the latest commit"
+git push
+```
+
 ## Contributing 
 
 If you wish to contribute to this project, please follow the standard GitHub workflow:
