@@ -5,16 +5,19 @@ from google.cloud import storage
 bucket_name = 'us-central1-composer-dev-c335d299-bucket'
 local_dags_folder = '../dags'
 
-def sync_dags():
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+storage_client = storage.Client()
+bucket = storage_client.get_bucket(bucket_name)
 
-    for root, _, files in os.walk(local_dags_folder):
+def sync(path):
+    for root, dirs, files in os.walk(path):
         for file in files:
             local_file_path = os.path.join(root, file)
             remote_file_path = os.path.relpath(local_file_path, local_dags_folder)
             blob = bucket.blob(remote_file_path)
             blob.upload_from_filename(local_file_path)
 
+        for directory in dirs:
+            sync(directory)
+
 if __name__ == '__main__':
-    sync_dags()
+    sync(local_dags_folder)
