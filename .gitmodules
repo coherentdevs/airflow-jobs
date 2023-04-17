@@ -1,3 +1,3 @@
-[submodule "evm-models"]
-	path = evm-models
-	url = https://github.com/coherentopensource/evm-models
+[submodule "dags/evm-models"]
+	path = dags/evm-models
+	url = https://github.com/coherentopensource/evm-models.git
