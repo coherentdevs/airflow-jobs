@@ -1,5 +1,4 @@
 import os
-import subprocess
 from google.cloud import storage
 
 # Set your bucket name and local dags folder path
