@@ -1,7 +1,6 @@
 from datetime import timedelta
 from airflow import DAG
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
-from dbt_cloud_operator import DbtCloudOperator
 from datetime import datetime
 
 # Define default arguments for the DAG
