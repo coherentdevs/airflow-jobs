@@ -20,5 +20,4 @@ def sync(path):
         for directory in dirs:
             sync(directory)
 
-if __name__ == '__main__':
-    sync(local_dags_folder)
+sync(local_dags_folder)
