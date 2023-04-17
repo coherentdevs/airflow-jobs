@@ -3,7 +3,7 @@ from google.cloud import storage
 
 # Set your bucket name and local dags folder path
 bucket_name = 'us-central1-composer-dev-c335d299-bucket'
-local_dags_folder = '../dags'
+local_dags_folder = './dags'
 
 storage_client = storage.Client()
 bucket = storage_client.get_bucket(bucket_name)
