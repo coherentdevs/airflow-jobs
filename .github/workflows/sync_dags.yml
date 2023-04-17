@@ -32,8 +32,11 @@ jobs:
           git submodule init
           git submodule update
 
+      - name: Set up Google Application Credentials
+        run: echo '${{ secrets.GCP_CREDENTIALS }}' > gcp-credentials.json
+
       - name: Sync DAGs to GCS Bucket
         run: |
           python scripts/sync_dags_to_bucket.py
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-credentials.json
