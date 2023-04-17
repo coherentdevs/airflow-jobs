@@ -12,8 +12,7 @@ def sync(path):
     for root, dirs, files in os.walk(path):
         for file in files:
             local_file_path = os.path.join(root, file)
-            print(local_file_path)
-            remote_file_path = os.path.relpath(local_file_path, local_dags_folder)
+            remote_file_path = 'dags/' + os.path.relpath(local_file_path, local_dags_folder)
             blob = bucket.blob(remote_file_path)
             blob.upload_from_filename(local_file_path)
 
