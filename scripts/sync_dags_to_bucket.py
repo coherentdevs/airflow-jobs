@@ -11,11 +11,10 @@ def sync_dags():
 
     for root, _, files in os.walk(local_dags_folder):
         for file in files:
-            if file.endswith('.py'):
-                local_file_path = os.path.join(root, file)
-                remote_file_path = os.path.relpath(local_file_path, local_dags_folder)
-                blob = bucket.blob(remote_file_path)
-                blob.upload_from_filename(local_file_path)
+            local_file_path = os.path.join(root, file)
+            remote_file_path = os.path.relpath(local_file_path, local_dags_folder)
+            blob = bucket.blob(remote_file_path)
+            blob.upload_from_filename(local_file_path)
 
 if __name__ == '__main__':
     sync_dags()
