@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'dags/**'
+      - '*'
 
 jobs:
   sync-dags:
