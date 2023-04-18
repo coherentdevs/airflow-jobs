@@ -137,8 +137,17 @@ load_logs_to_temp_table = SnowflakeOperator(
     dag=dag,
 )
 
+run_transactions_incremental_model = BashOperator(
+    task_id='run_dbt_model',
+    bash_command='dbt run --models decoded_{{ ti.xcom_pull(key="type") }} --profiles-dir /path/to/profiles.yml '
+                 '--target production --vars \'{"raw_schema": "temporary_incremental", "raw_database": '
+                 '"ethereum_managed", "source_table_{{ ti.xcom_pull(key="type") }}": "{{'
+                 'ti.xcom_pull(key=\'temp_table_name\') }}" }\'',
+    dag=dag,
+)
+
 extract_gcs_path_task >> branch_task
-branch_task >> load_traces_to_temp_table
-branch_task >> load_blocks_to_temp_table
-branch_task >> load_transactions_to_temp_table
-branch_task >> load_logs_to_temp_table
+branch_task >> load_traces_to_temp_table >> run_transactions_incremental_model
+branch_task >> load_blocks_to_temp_table >> run_transactions_incremental_model
+branch_task >> load_transactions_to_temp_table >> run_transactions_incremental_model
+branch_task >> load_logs_to_temp_table >> run_transactions_incremental_model
