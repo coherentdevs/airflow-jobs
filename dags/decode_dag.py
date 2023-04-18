@@ -3,6 +3,7 @@ from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from airflow.operators.python_operator import BranchPythonOperator
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
+from airflow.operators.bash_operator import BashOperator
 import logging
 import os
 
@@ -137,17 +138,28 @@ load_logs_to_temp_table = SnowflakeOperator(
     dag=dag,
 )
 
-run_transactions_incremental_model = BashOperator(
+def log_dbt_run_success(context):
+    logging.info("Successfully executed dbt command: {}".format(context["ti"].task_instance.bash_command))
+
+def log_dbt_run_failure(context):
+    logging.error("Failed to execute dbt command: {}".format(context["ti"].task_instance.bash_command))
+
+run_incremental_model = BashOperator(
     task_id='run_dbt_model',
-    bash_command='dbt run --models decoded_{{ ti.xcom_pull(key="type") }} --profiles-dir /path/to/profiles.yml '
-                 '--target production --vars \'{"raw_schema": "temporary_incremental", "raw_database": '
-                 '"ethereum_managed", "source_table_{{ ti.xcom_pull(key="type") }}": "{{'
-                 'ti.xcom_pull(key=\'temp_table_name\') }}" }\'',
+    bash_command="""
+        dbt run --models decoded_{{ ti.xcom_pull(key='type') }}
+        --target production
+        --vars '{{"raw_schema": "temporary_incremental",
+                 "raw_database": "ethereum_managed",
+                 "source_table_{{ ti.xcom_pull(key="type") }}": "{{ ti.xcom_pull(key='temp_table_name') }}" }}'
+    """,
+    on_success_callback=log_dbt_run_success,
+    on_failure_callback=log_dbt_run_failure,
     dag=dag,
 )
 
 extract_gcs_path_task >> branch_task
-branch_task >> load_traces_to_temp_table >> run_transactions_incremental_model
-branch_task >> load_blocks_to_temp_table >> run_transactions_incremental_model
-branch_task >> load_transactions_to_temp_table >> run_transactions_incremental_model
-branch_task >> load_logs_to_temp_table >> run_transactions_incremental_model
+branch_task >> load_traces_to_temp_table >> run_incremental_model
+branch_task >> load_blocks_to_temp_table >> run_incremental_model
+branch_task >> load_transactions_to_temp_table >> run_incremental_model
+branch_task >> load_logs_to_temp_table >> run_incremental_model
