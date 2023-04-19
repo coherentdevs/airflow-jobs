@@ -23,12 +23,12 @@ dag = DAG(
 )
 
 
-run_incremental_model = BashOperator(
-    task_id='run_dbt_model',
+run_incremental_transactions_dbt_model = BashOperator(
+    task_id='run_incremental_transactions_dbt_model',
     bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --models decoded_transactions '
                  '--target production --vars \"{"raw_database": '
                  '"ethereum_managed", "contracts_database": "contracts"}\" ',
     dag=dag
 )
 
-run_incremental_model
+run_incremental_transactions_dbt_model
