@@ -76,6 +76,7 @@ run_incremental_model = BashOperator(
                  '--target production --vars \"{"raw_schema": "temporary_incremental", "raw_database": '
                  '"ethereum_managed", "source_table_{{ ti.xcom_pull(key=\"type\") }}": "{{'
                  'ti.xcom_pull(key=\"temp_table_name\") }}", "contracts_database": "contracts", "contracts_schema": "evm" }\" ',
+    timeout=600,
     dag=dag
 )
 
@@ -83,7 +84,6 @@ drop_temp_table = SnowflakeOperator(
     task_id="drop_temp_table",
     sql="DROP TABLE IF EXISTS temporary_incremental.{{ ti.xcom_pull(key='temp_table_name') }};",
     snowflake_conn_id="snowflake_temporary_incremental",
-    timeout=600,
     dag=dag
 )
 
