@@ -57,7 +57,7 @@ def log_failure(context):
 load_parquet_to_temp_table = SnowflakeOperator(
     task_id="load_parquet_to_temp_table",
     sql="""
-        CREATE OR REPLACE TEMPORARY TABLE temporary_incremental.{{ ti.xcom_pull(key='temp_table_name') }} LIKE ETHEREUM_MANAGED.RAW.{{ ti.xcom_pull(key='type') }};
+        CREATE OR REPLACE TABLE temporary_incremental.{{ ti.xcom_pull(key='temp_table_name') }} LIKE ETHEREUM_MANAGED.RAW.{{ ti.xcom_pull(key='type') }};
         COPY INTO temporary_incremental.{{ ti.xcom_pull(key='temp_table_name') }}
             FROM @ETHEREUM_MANAGED.RAW.ETH_RAW_STAGE
             file_format = parquet_format
@@ -67,27 +67,24 @@ load_parquet_to_temp_table = SnowflakeOperator(
     snowflake_conn_id="snowflake_temporary_incremental",
     on_success_callback=log_success,
     on_failure_callback=log_failure,
-    dag=dag,
+    dag=dag
 )
-
-def log_dbt_run_success(context):
-    logging.info("Successfully executed dbt command: {}".format(context["ti"].task_instance.bash_command))
-
-def log_dbt_run_failure(context):
-    logging.error("Failed to execute dbt command: {}".format(context["ti"].task_instance.bash_command))
 
 run_incremental_model = BashOperator(
     task_id='run_dbt_model',
-    bash_command="""
-        dbt run --models decoded_{{ ti.xcom_pull(key='type') }}
-        --target production
-        --vars '{{"raw_schema": "temporary_incremental",
-                 "raw_database": "ethereum_managed",
-                 "source_table_{{ ti.xcom_pull(key='type') }}": "{{ ti.xcom_pull(key='temp_table_name') }}" }}'
-    """,
-    on_success_callback=log_dbt_run_success,
-    on_failure_callback=log_dbt_run_failure,
-    dag=dag,
+    bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --models decoded_{{ ti.xcom_pull(key="type") }} '
+                 '--target production --vars \"{"raw_schema": "temporary_incremental", "raw_database": '
+                 '"ethereum_managed", "source_table_{{ ti.xcom_pull(key=\"type\") }}": "{{'
+                 'ti.xcom_pull(key=\"temp_table_name\") }}", "contracts_database": "contracts", "contracts_schema": "evm" }\" ',
+    dag=dag
 )
 
-extract_gcs_path_task >> load_parquet_to_temp_table >> run_incremental_model
+drop_temp_table = SnowflakeOperator(
+    task_id="drop_temp_table",
+    sql="DROP TABLE IF EXISTS temporary_incremental.{{ ti.xcom_pull(key='temp_table_name') }};",
+    snowflake_conn_id="snowflake_temporary_incremental",
+    timeout=600,
+    dag=dag
+)
+
+extract_gcs_path_task >> load_parquet_to_temp_table >> run_incremental_model >> drop_temp_table
