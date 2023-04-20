@@ -18,14 +18,14 @@ dag = DAG(
     "decode_traces_hourly",
     default_args=default_args,
     description="DAG to decode traces hourly",
-    schedule_interval=timedelta(hours=2),
+    schedule_interval=timedelta(hours=1),
     catchup=False,
 )
 
 
 run_incremental_traces_dbt_model = BashOperator(
     task_id='run_incremental_traces_dbt_model',
-    bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --models decoded_traces '
+    bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --select decoded_traces '
                  '--target production --vars \"{"raw_database": '
                  '"ethereum_managed", "contracts_database": "contracts"}\" ',
     dag=dag

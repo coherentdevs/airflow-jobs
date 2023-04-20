@@ -25,7 +25,7 @@ dag = DAG(
 
 run_incremental_blocks_dbt_model = BashOperator(
     task_id='run_incremental_blocks_dbt_model',
-    bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --models decoded_blocks '
+    bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --select decoded_blocks '
                  '--target production --vars \"{"raw_database": '
                  '"ethereum_managed", "contracts_database": "contracts"}\" ',
     dag=dag
