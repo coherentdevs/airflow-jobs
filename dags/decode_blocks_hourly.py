@@ -8,17 +8,17 @@ default_args = {
     "depends_on_past": False,
     "email_on_failure": False,
     "email_on_retry": False,
-    "retries": 1,
+    "retries": 0,
     "retry_delay": timedelta(minutes=5),
     "start_date": datetime.now() - timedelta(days=1),
 }
 
 # Instantiate the DAG
 dag = DAG(
-    "decode_blocks_hourly",
+    "decode_blocks_hourly_v2",
     default_args=default_args,
     description="DAG to decode blocks hourly",
-    schedule_interval=timedelta(hours=1),
+    schedule_interval='0 * * * *',
     catchup=False,
 )
 
