@@ -18,7 +18,7 @@ dag = DAG(
     "decode_traces_hourly",
     default_args=default_args,
     description="DAG to decode traces hourly",
-    schedule_interval=timedelta(hours=1),
+    schedule_interval='0 * * * *',
     catchup=False,
 )
 
