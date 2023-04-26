@@ -15,7 +15,7 @@ default_args = {
 
 # Instantiate the DAG
 dag = DAG(
-    "decode_blocks_hourly",
+    "decode_blocks_hourly_v2",
     default_args=default_args,
     description="DAG to decode blocks hourly",
     schedule_interval='0 * * * *',

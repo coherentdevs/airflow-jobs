@@ -15,7 +15,7 @@ default_args = {
 
 # Instantiate the DAG
 dag = DAG(
-    "decode_transactions_hourly",
+    "decode_transactions_hourly_v2",
     default_args=default_args,
     description="DAG to decode transactions hourly",
     schedule_interval='0 * * * *',
