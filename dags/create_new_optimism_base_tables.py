@@ -4,8 +4,7 @@ from datetime import datetime
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from common import config, optimism_queries
 
-SNOWFLAKE_CONN_ID="snowflake_ethereum_small"
-MAX_COUNT=100
+SNOWFLAKE_CONN_ID="snowflake_optimism_small"
 
 with DAG(
         "create-new-optimism-tables",
