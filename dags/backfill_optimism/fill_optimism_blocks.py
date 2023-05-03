@@ -1,5 +1,4 @@
 from airflow import DAG
-from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
 from datetime import datetime, timedelta
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
@@ -12,16 +11,16 @@ default_args = {
     "depends_on_past": False,
     "email_on_failure": False,
     "email_on_retry": False,
-    "retries": 0,
+    "retries": 2,
     "retry_delay": timedelta(minutes=5),
     "start_date": datetime.now() - timedelta(days=1),
     "snowflake_conn_id": SNOWFLAKE_CONN_ID
 }
 
 with DAG(
-        "fill-optimism-v2",
+        "fill-optimism-blocks-v1",
         description="""
-        rebackfill raw optimism
+        rebackfill raw optimism blocks
     """,
         doc_md=__doc__,
         start_date=datetime(2022, 12, 1),
@@ -30,32 +29,34 @@ with DAG(
         default_args=default_args,
 ) as dag:
     """
-    #### Optimism Block table creation
+    #### backfill optimism blocks to 90,000,000 block
     """
     min = 0
     step = 10000
     iterations = 9000
     block_loaders = []
-    tx_loaders = []
-    trace_loaders = []
-    log_loaders = []
-    tables = [config.BLOCKS_TABLE_NAME, config.TRANSACTIONS_TABLE_NAME, config.TRACES_TABLE_NAME, config.LOGS_TABLE_NAME]
-    objects = [config.BLOCKS, config.TRANSACTIONS, config.TRACES, config.LOGS]
-    loaders = [block_loaders, tx_loaders, trace_loaders, log_loaders]
+    tables = config.BLOCKS_TABLE_NAME
+    objects = config.BLOCKS
+    for batch in range(0, 5):
+        current_batch = []
 
-    for y in range(4):
-        for n in range(0,iterations):
+        for n in range(0,1800):
             start = min + (n * step)
             stop = start + step - 1
-            stmt = optimism_queries.OPTIMISM_COPY_FMT.format(table_name=tables[y], object_type=objects[y], start=start, end=stop)
+            stmt = optimism_queries.OPTIMISM_COPY_FMT.format(table_name=tables, object_type=objects, start=start, end=stop)
             task = SnowflakeOperator(
-                task_id=f"fill_%s_%s_%s" % (start, stop, objects[y]),
+                task_id=f"fill_%s_%s_%s" % (start, stop, objects),
                 sql=stmt,
             )
-            loaders[y].append(task)
+            current_batch.append(task)
+        block_loaders.append(current_batch)
+        min += 1800 * step
 
 
     begin = EmptyOperator(task_id="begin")
     end = EmptyOperator(task_id="end")
 
-    begin >> block_loaders + tx_loaders + trace_loaders + log_loaders >> end
+    begin >> block_loaders[0]
+    for i in range(len(block_loaders) - 1):
+        block_loaders[i][-1] >> block_loaders[i + 1]
+    block_loaders[-1][-1] >> end
