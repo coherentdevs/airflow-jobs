@@ -55,7 +55,7 @@ CREATE OR REPLACE TABLE transactions (
     type VARCHAR,
     max_fee_per_gas VARCHAR,
     max_priority_fee_per_gas VARCHAR,
-    access_list VARCHAR
+    access_list VARCHAR,
     CONSTRAINT transactions_pkey PRIMARY KEY (transaction_hash) ENFORCED
 );
 """
@@ -70,7 +70,7 @@ CREATE OR REPLACE TABLE logs (
     address VARCHAR,
     data VARCHAR,
     topics VARCHAR,
-    removed BOOLEAN
+    removed BOOLEAN,
     CONSTRAINT logs_pkey PRIMARY KEY (transaction_hash, log_index) ENFORCED
 )
 CLUSTER BY (transaction_hash);
@@ -93,7 +93,7 @@ CREATE OR REPLACE TABLE traces (
     input VARCHAR,
     output VARCHAR,
     error VARCHAR,
-    revert_reason VARCHAR
+    revert_reason VARCHAR,
     CONSTRAINT traces_pkey PRIMARY KEY (transaction_hash, trace_hash, parent_hash, trace_index) ENFORCED
 )
 CLUSTER BY (block_number, transaction_hash);
