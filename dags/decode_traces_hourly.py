@@ -17,8 +17,8 @@ default_args = {
 dag = DAG(
     "decode_traces_hourly_v2",
     default_args=default_args,
-    description="DAG to decode traces hourly",
-    schedule_interval='0 * * * *',
+    description="DAG to decode traces every 12 hours",
+    schedule_interval='0 */12 * * *',
     catchup=False,
 )
 
