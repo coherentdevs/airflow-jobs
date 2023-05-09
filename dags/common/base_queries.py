@@ -135,3 +135,14 @@ CREATE or REPLACE PIPE testnet_base_raw_logs
 COPY INTO LOGS
 FROM @testnet_base_raw_stage/logs/ file_format = parquet_format match_by_column_name = case_insensitive pattern = '(.+)\.parquet';
 """
+
+TESTNET_BASE_COPY_FMT = """
+COPY INTO
+    {table_name}
+FROM
+	@testnet_base_raw_stage/{object_type}/blocks_{start}-{end}/
+	    file_format = parquet_format 
+	    force = True
+	    match_by_column_name = case_insensitive 
+	    pattern = '^(.+)\.parquet$'
+"""
