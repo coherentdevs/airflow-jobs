@@ -60,13 +60,7 @@ def query_postgres_for_new_rows(ti):
         WHERE 'address' NOT IN ({address_list_str}) AND BLOCKCHAIN = '{BLOCKCHAIN}'"""
     result = postgres_hook.get_pandas_df(sql=query)
 
-    batch_size = int(config.BATCH_SIZE)
-    for i in range(0, len(result), batch_size):
-        if i + batch_size > len(result):
-            export_new_rows_to_snowflake(result[i:])
-        else:
-            export_new_rows_to_snowflake(result[i:i+batch_size])
-
+    export_new_rows_to_snowflake(result)
     logging.info("successful!")
 
 
@@ -81,10 +75,10 @@ def export_new_rows_to_snowflake(df):
     df['decimals'] = pd.to_numeric(df['decimals'], errors='coerce').astype('Int64')
 
     try:
-        df.to_sql(SNOWFLAKE_CONTRACTS_TABLE, engine, if_exists='append', index=False)
+        rows_affected = df.to_sql(SNOWFLAKE_CONTRACTS_TABLE, engine, method='multi', if_exists='append', index=False, chunksize=int(config.BATCH_SIZE))
     except Exception as e:
         raise e
-    logging.info(f"inserted {len(df)} rows into snowflake")
+    logging.info(f"inserted {rows_affected} rows into snowflake")
 
 
 
