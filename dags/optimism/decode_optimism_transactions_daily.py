@@ -15,10 +15,10 @@ default_args = {
 
 # Instantiate the DAG
 dag = DAG(
-    "decode_optimism_transactions_hourly",
+    "decode_optimism_transactions_daily",
     default_args=default_args,
-    description="DAG to decode optimism transactions hourly",
-    schedule_interval='0 * * * *',
+    description="DAG to decode optimism transactions daily",
+    schedule_interval='0 0 * * *',
     catchup=False,
 )
 
