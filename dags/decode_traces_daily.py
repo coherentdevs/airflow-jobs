@@ -15,10 +15,10 @@ default_args = {
 
 # Instantiate the DAG
 dag = DAG(
-    "decode_traces_12_hours",
+    "decode_traces_daily",
     default_args=default_args,
-    description="DAG to decode traces every 12 hours",
-    schedule_interval='0 */12 * * *',
+    description="DAG to decode traces every 24 hrs",
+    schedule_interval='0 0 * * *',
     catchup=False,
 )
 

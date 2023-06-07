@@ -15,20 +15,20 @@ default_args = {
 
 # Instantiate the DAG
 dag = DAG(
-    "decode_optimism_logs_hourly",
+    "decode_optimism_blocks_daily",
     default_args=default_args,
-    description="DAG to decode optimism logs hourly",
-    schedule_interval='0 * * * *',
+    description="DAG to decode optimism blocks daily",
+    schedule_interval='0 0 * * *',
     catchup=False,
 )
 
 
-run_incremental_optimism_logs_dbt_model = BashOperator(
-    task_id='run_incremental_optimism_logs_dbt_model',
-    bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --select decoded_optimism_logs '
+run_incremental_optimism_blocks_dbt_model = BashOperator(
+    task_id='run_incremental_optimism_blocks_dbt_model',
+    bash_command='cd /home/airflow/gcs/dags/evm-models/ && dbt run --select decoded_optimism_blocks '
                  '--target optimism-production --vars \"{"optimism_raw_database": '
                  '"optimism_managed", "contracts_database": "contracts"}\" ',
     dag=dag
 )
 
-run_incremental_optimism_logs_dbt_model
+run_incremental_optimism_blocks_dbt_model
