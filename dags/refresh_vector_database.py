@@ -3,10 +3,13 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeOperator
 from datetime import datetime, timedelta
+from common.pinecone import PineconeClient
+from common import config
 
-SNOWFLAKE_CONN_ID="snowflake_optimism"
-VECTORS_ENDPOINT="http://your-flask-app-url/vectors"
-PINECONE_ENDPOINT="http://your-pinecone-endpoint"
+SNOWFLAKE_CONN_ID="snowflake_ethereum"
+VECTORS_ENDPOINT="http://api.semantic-beta.coherent.xyz/vectors"
+PINECONE_NAMESPACE="your_pinecone_namespace"
+PINECODE_API_KEY=""
 
 default_args = {
     "owner": "airflow",
@@ -20,9 +23,9 @@ default_args = {
 }
 
 def upsert_to_pinecone(**context):
-    # Logic for upserting to Pinecone goes here.
-    # You can use context['task_instance'].xcom_pull(task_ids='get_vectors') to get the data from the previous task.
-    pass
+    pinecone = PineconeClient(PINECODE_API_KEY)
+    vectors = context['task_instance'].xcom_pull(task_ids='get_vectors')
+    pinecone.upsert_vectors(vectors, PINECONE_NAMESPACE)
 
 with DAG(
         "fetch-ethereum-address-vectors-v1",
