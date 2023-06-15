@@ -20,17 +20,4 @@ class PineconeClient:
         response = requests.post(url, headers=self.headers, data=json.dumps(data))
         return response.json()
 
-    def query_vectors(self, vector, topK, includeMetadata, includeValues, namespace):
-        url = f"{self.base_url}/query"
-        data = {
-            'vector': vector,
-            'topK': topK,
-            'includeMetadata': includeMetadata,
-            'includeValues': includeValues,
-            'namespace': namespace,
-        }
-        response = requests.post(url, headers=self.headers, data=json.dumps(data))
-        return response.json()
-
-
 pinecone = PineconeClient(config.config['production'].PINECONE_API_KEY)
