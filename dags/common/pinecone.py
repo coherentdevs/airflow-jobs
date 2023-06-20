@@ -1,5 +1,6 @@
 import json
 import requests
+import logging
 from . import config
 
 class PineconeClient:
@@ -7,17 +8,23 @@ class PineconeClient:
         self.api_key = api_key
         self.headers = {
             'Content-Type': 'application/json',
-            'Api-Key': self.api_key,
+            'Api-Key': 'abfba852-761f-4099-8255-3fa563185154',
         }
         self.base_url = 'https://addresses-656d21f.svc.us-west4-gcp.pinecone.io'
 
     def upsert_vectors(self, vectors, namespace):
         url = f"{self.base_url}/vectors/upsert"
         data = {
-            'vectors': vectors,
+            'vectors': [],
             'namespace': namespace,
         }
-        response = requests.post(url, headers=self.headers, data=json.dumps(data))
-        return response.json()
+        for address, vector in vectors.items():
+            vector_map = {
+                'id': address,
+                "values": vector
+            }
+            data['vectors'].append(vector_map)
 
-pinecone = PineconeClient(config.config['production'].PINECONE_API_KEY)
+        response = requests.post(url, headers=self.headers, data=json.dumps(data))
+        return response
+
