@@ -14,7 +14,7 @@ SNOWFLAKE_CONN_ID = "snowflake_ethereum_decoded"
 VECTORS_ENDPOINT = "/internal/vectors"
 PINECONE_NAMESPACE = "user_vectors"
 PINECODE_API_KEY = Variable.get("pinecone_api_key")
-SEMANTIC_FETCH_BATCH_SIZE = 50
+SEMANTIC_FETCH_BATCH_SIZE = 1000
 PINECONE_UPSERT_BATCH_SIZE = 100
 
 default_args = {
@@ -50,15 +50,18 @@ def get_vectors_and_upsert_fn(addresses):
     pinecone.init("abfba852-761f-4099-8255-3fa563185154", environment='us-west4-gcp')
     upsert_tuples = []
 
-    http = HttpHook(method='GET', http_conn_id='http_semantic_api')
+    http = HttpHook(method='POST', http_conn_id='http_semantic_api')
     for i in range(0, len(addresses), SEMANTIC_FETCH_BATCH_SIZE):
         batch_addresses = addresses[i: i + SEMANTIC_FETCH_BATCH_SIZE]
-        query_string = "&".join([f"addresses={address[0]}" for address in batch_addresses])
-        endpoint = f"{VECTORS_ENDPOINT}?{query_string}"
+        data = {
+            "addresses": [address[0] for address in batch_addresses]
+        }
+        endpoint = f"{VECTORS_ENDPOINT}"
         # pull vectors from semantic api
         logging.info("Pulling vectors from semantic api")
         get_vectors_response = http.run(endpoint=endpoint,
-                                        headers={"Content-Type": "application/json", "x-api-key": "demo"})
+                                        headers={"Content-Type": "application/json", "x-api-key": "demo"},
+                                        json=data)
         if get_vectors_response.status_code != 200:
             logging.error(f"Received status code {get_vectors_response.status_code} from Semantic API")
             logging.error(f"Error message: {get_vectors_response.text}")
@@ -77,8 +80,8 @@ def get_vectors_and_upsert_fn(addresses):
     with pinecone.Index('addresses', pool_threads=30) as index:
         # Send requests in parallel
         async_results = [
-            index.upsert(vectors=ids_vectors_chunk, namespace=PINECONE_NAMESPACE,async_req=True)
-            for ids_vectors_chunk in chunks(upsert_tuples, batch_size=SEMANTIC_FETCH_BATCH_SIZE)
+            index.upsert(vectors=ids_vectors_chunk, namespace="testing",async_req=True)
+            for ids_vectors_chunk in chunks(upsert_tuples, batch_size=PINECONE_UPSERT_BATCH_SIZE)
         ]
         # Wait for and retrieve responses (this raises in case of error)
         [async_result.get() for async_result in async_results]
