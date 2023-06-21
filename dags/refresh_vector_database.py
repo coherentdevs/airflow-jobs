@@ -77,7 +77,7 @@ def get_vectors_and_upsert_fn(addresses):
     with pinecone.Index('addresses', pool_threads=30) as index:
         # Send requests in parallel
         async_results = [
-            index.upsert(vectors=ids_vectors_chunk, async_req=True)
+            index.upsert(vectors=ids_vectors_chunk, namespace=PINECONE_NAMESPACE,async_req=True)
             for ids_vectors_chunk in chunks(upsert_tuples, batch_size=SEMANTIC_FETCH_BATCH_SIZE)
         ]
         # Wait for and retrieve responses (this raises in case of error)
