@@ -15,15 +15,9 @@ class PineconeClient:
     def upsert_vectors(self, vectors, namespace):
         url = f"{self.base_url}/vectors/upsert"
         data = {
-            'vectors': [],
+            'vectors': vectors,
             'namespace': namespace,
         }
-        for address, vector in vectors.items():
-            vector_map = {
-                'id': address,
-                "values": vector
-            }
-            data['vectors'].append(vector_map)
 
         response = requests.post(url, headers=self.headers, data=json.dumps(data))
         return response
