@@ -1,21 +1,22 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.hooks.http import HttpHook
-from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 from airflow.models import Variable
 from datetime import datetime, timedelta
 
 import pinecone
 import itertools
 import logging
-from common import config
+import os
 
-SNOWFLAKE_CONN_ID = "snowflake_ethereum_decoded"
+SNOWFLAKE_CONN_ID = "snowflake_pinecone_upsert"
 VECTORS_ENDPOINT = "/internal/vectors"
 PINECONE_NAMESPACE = "user_vectors"
 PINECODE_API_KEY = Variable.get("pinecone_api_key")
-SEMANTIC_FETCH_BATCH_SIZE = 1000
+
+SEMANTIC_FETCH_BATCH_SIZE = 10000
 PINECONE_UPSERT_BATCH_SIZE = 100
+N = 1680  # the number of parallel tasks
 
 default_args = {
     "owner": "airflow",
@@ -23,17 +24,9 @@ default_args = {
     "email_on_failure": False,
     "email_on_retry": False,
     "retries": 0,
-    "retry_delay": timedelta(minutes=5),
+    "retry_delay": timedelta(minutes=30),
     "start_date": datetime.now() - timedelta(days=1),
 }
-
-
-def fetch_addresses_fn():
-    hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONN_ID)
-    sql = "SELECT DISTINCT from_address FROM DECODED_TRANSACTIONS LIMIT 10000"
-    logging.info("getting Ethereum addresses from snowflake")
-    records = hook.get_records(sql)
-    return records
 
 
 def chunks(iterable, batch_size=SEMANTIC_FETCH_BATCH_SIZE):
@@ -44,9 +37,11 @@ def chunks(iterable, batch_size=SEMANTIC_FETCH_BATCH_SIZE):
         yield chunk
         chunk = tuple(itertools.islice(it, batch_size))
 
+def get_vectors_and_upsert_fn(file_name):
+    # Read addresses from file
+    with open(file_name, 'r') as f:
+        addresses = f.read().splitlines()
 
-def get_vectors_and_upsert_fn(addresses):
-    # initialize pinecone index
     pinecone.init("abfba852-761f-4099-8255-3fa563185154", environment='us-west4-gcp')
     upsert_tuples = []
 
@@ -54,7 +49,7 @@ def get_vectors_and_upsert_fn(addresses):
     for i in range(0, len(addresses), SEMANTIC_FETCH_BATCH_SIZE):
         batch_addresses = addresses[i: i + SEMANTIC_FETCH_BATCH_SIZE]
         data = {
-            "addresses": [address[0] for address in batch_addresses]
+            "addresses": [address for address in batch_addresses]
         }
         endpoint = f"{VECTORS_ENDPOINT}"
         # pull vectors from semantic api
@@ -80,7 +75,7 @@ def get_vectors_and_upsert_fn(addresses):
     with pinecone.Index('addresses', pool_threads=30) as index:
         # Send requests in parallel
         async_results = [
-            index.upsert(vectors=ids_vectors_chunk, namespace="testing",async_req=True)
+            index.upsert(vectors=ids_vectors_chunk, namespace="testing_parallelization_v9", async_req=True)
             for ids_vectors_chunk in chunks(upsert_tuples, batch_size=PINECONE_UPSERT_BATCH_SIZE)
         ]
         # Wait for and retrieve responses (this raises in case of error)
@@ -88,25 +83,17 @@ def get_vectors_and_upsert_fn(addresses):
 
     logging.info("Pinecone upsert finished")
 
-
 with DAG(
-        "refresh-vector-database",
-        description="""
-        Fetch Word2Vec embeddings for Ethereum addresses and upsert to Pinecone.
-    """,
-        start_date=datetime(2022, 12, 1),
-        schedule_interval=None,
+        'eth_addresses_to_pinecone_v1',
         default_args=default_args,
+        description='DAG to get ETH addresses from GCS and upsert them to Pinecone',
+        schedule_interval=None,
 ) as dag:
-    fetch_addresses = PythonOperator(
-        task_id="fetch_addresses",
-        python_callable=fetch_addresses_fn,
-    )
-
-    get_vectors_and_upsert = PythonOperator(
-        task_id='get_vectors_and_upsert',
-        python_callable=get_vectors_and_upsert_fn,
-        op_kwargs={'addresses': fetch_addresses.output},
-    )
-
-    fetch_addresses >> get_vectors_and_upsert
+    for i in range(N):
+        upsert_vectors = PythonOperator(
+            task_id=f'upsert_vectors_{i}',
+            python_callable=get_vectors_and_upsert_fn,
+            op_kwargs={
+                'file_name': f'/home/airflow/gcs/dags/eth_addresses/addresses_{i}.txt',
+            }
+        )
