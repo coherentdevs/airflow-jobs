@@ -4,9 +4,9 @@ from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import os
-from typing import List, Dict
 
-N = 1680  # Number of partitions
+start = 14700
+end = 16800
 SNOWFLAKE_CONN_ID = 'snowflake_pinecone_upsert'  # Snowflake connection ID
 
 default_args = {
@@ -19,7 +19,7 @@ default_args = {
 
 def get_eth_addresses_from_snowflake(partition_id):
     hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONN_ID)
-    sql = f"SELECT from_address FROM unique_addresses_v2 WHERE partition_id = {partition_id} LIMIT 10000"
+    sql = f"SELECT from_address FROM unique_eth_addresses_batch_10000 WHERE partition_id = {partition_id}"
     records = hook.get_records(sql)
     return records
 
@@ -40,13 +40,13 @@ def upload_to_gcs(bucket_name, directory, file_name, addresses):
 
 
 with DAG(
-    'upload_unique_eth_addresses_gcs_v2',
+    'upload_unique_eth_addresses_gcs_p8',
     default_args=default_args,
     description='DAG to get ETH addresses from Snowflake and store them in GCS',
     schedule_interval=None,
 ) as dag:
 
-    for i in range(N):
+    for i in range(start, end):
         fetch_addresses = PythonOperator(
             task_id=f'fetch_addresses_{i}',
             python_callable=get_eth_addresses_from_snowflake,
