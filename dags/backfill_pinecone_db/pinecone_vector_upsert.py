@@ -12,11 +12,12 @@ import os
 SNOWFLAKE_CONN_ID = "snowflake_pinecone_upsert"
 VECTORS_ENDPOINT = "/internal/vectors"
 PINECONE_NAMESPACE = "user_vectors"
-PINECODE_API_KEY = Variable.get("pinecone_api_key")
+PINECONE_API_KEY = Variable.get("pinecone_api_key")
+START = Variable.get("pinecone_upsert_batch_start")
+END = Variable.get("pinecone_upsert_batch_end")
 
 SEMANTIC_FETCH_BATCH_SIZE = 10000
 PINECONE_UPSERT_BATCH_SIZE = 100
-N = 1680  # the number of parallel tasks
 
 default_args = {
     "owner": "airflow",
@@ -42,7 +43,7 @@ def get_vectors_and_upsert_fn(file_name):
     with open(file_name, 'r') as f:
         addresses = f.read().splitlines()
 
-    pinecone.init("abfba852-761f-4099-8255-3fa563185154", environment='us-west4-gcp')
+    pinecone.init(PINECONE_API_KEY, environment='us-west4-gcp')
     upsert_tuples = []
 
     http = HttpHook(method='POST', http_conn_id='http_semantic_api')
@@ -75,7 +76,7 @@ def get_vectors_and_upsert_fn(file_name):
     with pinecone.Index('addresses', pool_threads=30) as index:
         # Send requests in parallel
         async_results = [
-            index.upsert(vectors=ids_vectors_chunk, namespace="testing_parallelization_v9", async_req=True)
+            index.upsert(vectors=ids_vectors_chunk, namespace="testing_parallelization_v10", async_req=True)
             for ids_vectors_chunk in chunks(upsert_tuples, batch_size=PINECONE_UPSERT_BATCH_SIZE)
         ]
         # Wait for and retrieve responses (this raises in case of error)
@@ -84,12 +85,12 @@ def get_vectors_and_upsert_fn(file_name):
     logging.info("Pinecone upsert finished")
 
 with DAG(
-        'eth_addresses_to_pinecone_v1',
+        'pinecone_vector_upsert',
         default_args=default_args,
         description='DAG to get ETH addresses from GCS and upsert them to Pinecone',
         schedule_interval=None,
 ) as dag:
-    for i in range(N):
+    for i in range(START, END):
         upsert_vectors = PythonOperator(
             task_id=f'upsert_vectors_{i}',
             python_callable=get_vectors_and_upsert_fn,
