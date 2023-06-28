@@ -13,11 +13,11 @@ SNOWFLAKE_CONN_ID = "snowflake_pinecone_upsert"
 VECTORS_ENDPOINT = "/internal/vectors"
 PINECONE_NAMESPACE = "user_vectors"
 PINECONE_API_KEY = Variable.get("pinecone_api_key")
+START = Variable.get("pinecone_upsert_batch_start")
+END = Variable.get("pinecone_upsert_batch_end")
 
 SEMANTIC_FETCH_BATCH_SIZE = 10000
 PINECONE_UPSERT_BATCH_SIZE = 100
-start = 4200
-end = 8400
 
 default_args = {
     "owner": "airflow",
@@ -85,12 +85,12 @@ def get_vectors_and_upsert_fn(file_name):
     logging.info("Pinecone upsert finished")
 
 with DAG(
-        'pinecone_upsert_p2',
+        'pinecone_vector_upsert',
         default_args=default_args,
         description='DAG to get ETH addresses from GCS and upsert them to Pinecone',
         schedule_interval=None,
 ) as dag:
-    for i in range(start, end):
+    for i in range(START, END):
         upsert_vectors = PythonOperator(
             task_id=f'upsert_vectors_{i}',
             python_callable=get_vectors_and_upsert_fn,

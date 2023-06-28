@@ -2,11 +2,12 @@ from airflow import DAG
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 from airflow.operators.python import PythonOperator
+from airflow.models import Variable
 from datetime import datetime, timedelta
 import os
 
-start = 14700
-end = 16800
+START = Variable.get("eth_addresses_upload_batch_start")
+END = Variable.get("eth_addresses_upload_batch_end")
 SNOWFLAKE_CONN_ID = 'snowflake_pinecone_upsert'  # Snowflake connection ID
 
 default_args = {
@@ -40,13 +41,13 @@ def upload_to_gcs(bucket_name, directory, file_name, addresses):
 
 
 with DAG(
-    'upload_unique_eth_addresses_gcs_p8',
+    'eth_addresses_upload_GCS',
     default_args=default_args,
     description='DAG to get ETH addresses from Snowflake and store them in GCS',
     schedule_interval=None,
 ) as dag:
 
-    for i in range(start, end):
+    for i in range(START, END):
         fetch_addresses = PythonOperator(
             task_id=f'fetch_addresses_{i}',
             python_callable=get_eth_addresses_from_snowflake,
